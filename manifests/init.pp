@@ -87,6 +87,8 @@ class graphite(
   $bind_address = $graphite::params::bind_address,
   $port = $graphite::params::port,
   $root_dir = $graphite::params::root_dir,
+  $conf_dir = "{$::graphite::params::root_dir}/conf",
+  $webapp_dir = "{$::graphite::params::root_dir}/webapp/graphite",
   $carbon_aggregator = false,
   $carbon_max_cache_size = 'inf',
   $carbon_max_creates_per_minute = 'inf',

@@ -12,19 +12,22 @@ class graphite::service {
     ensure     => $aggregator_ensure,
     hasstatus  => true,
     hasrestart => false,
-    provider   => upstart,
+#    provider   => upstart,
   } ->
   service { 'carbon-cache':
     ensure     => running,
+    enable     => true,
     hasstatus  => true,
     hasrestart => false,
-    provider   => upstart,
+#    provider   => upstart,
   }
 
   service { 'graphite-web':
     ensure     => running,
+    name       => 'httpd',
+    enable     => true,
     hasstatus  => true,
     hasrestart => false,
-    provider   => upstart,
+#    provider   => upstart,
   }
 }

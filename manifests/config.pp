@@ -8,6 +8,8 @@ class graphite::config {
   $bind_address = $::graphite::bind_address
   $port = $::graphite::port
   $root_dir = $::graphite::root_dir
+  $conf_dir = $::graphite::conf_dir
+  $webapp_dir = $::graphite::webapp_dir
   $user = $::graphite::user
   $group = $::graphite::group
   $carbon_max_cache_size = $::graphite::carbon_max_cache_size
@@ -52,39 +54,43 @@ class graphite::config {
     $initdb_cmd = "${root_dir}/bin/python manage.py syncdb --noinput"
     $gunicorn_bin = "${root_dir}/bin/gunicorn_django"
   } else {
-    $initdb_cmd = '/usr/bin/python manage.py syncdb --noinput'
+#    $initdb_cmd = '/usr/bin/python manage.py syncdb --noinput'
+    $initdb_cmd = '/usr/lib/python2.6/site-packages/graphite/manage.py syncdb --noinput'
     $gunicorn_bin = 'gunicorn_django'
   }
 
-  file {
-  [
-    '/etc/init.d/carbon-aggregator',
-    '/etc/init.d/carbon-cache',
-    '/etc/init.d/graphite-web'
-  ]:
-    ensure => link,
-    target => '/lib/init/upstart-job',
-  }
+  if $osfamily == "Debian" {
+    file {
+    [
+      '/etc/init.d/carbon-aggregator',
+      '/etc/init.d/carbon-cache',
+      '/etc/init.d/graphite-web'
+    ]:
+      ensure => link,
+      target => '/lib/init/upstart-job',
+    }
+  
+    file { '/etc/init/carbon-aggregator.conf':
+      ensure  => present,
+      content => template('graphite/upstart/carbon-aggregator.conf'),
+      mode    => '0444',
+    }
 
-  file { '/etc/init/carbon-aggregator.conf':
-    ensure  => present,
-    content => template('graphite/upstart/carbon-aggregator.conf'),
-    mode    => '0444',
-  }
+    file { '/etc/init/carbon-cache.conf':
+      ensure  => present,
+      content => template('graphite/upstart/carbon-cache.conf'),
+      mode    => '0444',
+    }
 
-  file { '/etc/init/carbon-cache.conf':
-    ensure  => present,
-    content => template('graphite/upstart/carbon-cache.conf'),
-    mode    => '0444',
-  }
+    file { '/etc/init/graphite-web.conf':
+      ensure  => present,
+      content => template('graphite/upstart/graphite-web.conf'),
+      mode    => '0444',
+    }
 
-  file { '/etc/init/graphite-web.conf':
-    ensure  => present,
-    content => template('graphite/upstart/graphite-web.conf'),
-    mode    => '0444',
   }
-
-  file { "${root_dir}/conf/carbon.conf":
+  
+  file { "${conf_dir}/carbon.conf":
     ensure  => present,
     content => $carbon_content,
     source  => $carbon_source,
@@ -92,7 +98,7 @@ class graphite::config {
     mode    => '0444',
   }
 
-  file { "${root_dir}/conf/aggregation-rules.conf":
+  file { "${conf_dir}/aggregation-rules.conf":
     ensure  => $aggregation_rules_ensure,
     content => $::graphite::aggregation_rules_content,
     source  => $::graphite::aggregation_rules_source,
@@ -100,7 +106,7 @@ class graphite::config {
     mode    => '0444',
   }
 
-  file { "${root_dir}/conf/storage-aggregation.conf":
+  file { "${conf_dir}/storage-aggregation.conf":
     ensure  => present,
     content => $storage_aggregation_content,
     source  => $storage_aggregation_source,
@@ -108,7 +114,7 @@ class graphite::config {
     mode    => '0444',
   }
 
-  file { "${root_dir}/conf/storage-schemas.conf":
+  file { "${conf_dir}/storage-schemas.conf":
     ensure  => present,
     content => $storage_schemas_content,
     source  => $storage_schemas_source,
@@ -119,7 +125,7 @@ class graphite::config {
   file { [
             "${root_dir}/storage",
             "${root_dir}/storage/whisper",
-            "${root_dir}/webapp/graphite",
+            "${webapp_dir}",
         ]:
     ensure => directory,
     owner  => $::graphite::user,
@@ -134,26 +140,26 @@ class graphite::config {
     refreshonly => true,
     require     => File["${root_dir}/storage"],
     subscribe   => [
-                      File['/etc/init/graphite-web.conf'],
-                      File['/etc/init/carbon-cache.conf'],
+#                        File['/etc/init/graphite-web.conf'],
+#                        File['/etc/init/carbon-cache.conf'],
                       File["${root_dir}/storage"],
-                      File["${root_dir}/webapp/graphite"],
+                      File["${webapp_dir}"],
                   ],
     before      => [
                       Service['graphite-web'],
                       Service['carbon-cache'],
                   ],
   }
-
+  
   exec { 'init-db':
     command   => $initdb_cmd,
-    cwd       => "${root_dir}/webapp/graphite",
+    cwd       => "${webapp_dir}",
     creates   => "${root_dir}/storage/graphite.db",
     subscribe => File["${root_dir}/storage"],
-    require   => File["${root_dir}/webapp/graphite/initial_data.json"],
+    require   => File["${webapp_dir}/initial_data.json"],
   }
 
-  file { "${root_dir}/webapp/graphite/initial_data.json":
+  file { "${webapp_dir}/initial_data.json":
     ensure  => present,
     owner   => $::graphite::user,
     group   => $::graphite::group,
@@ -168,14 +174,14 @@ class graphite::config {
     subscribe => Exec['init-db'],
   }
 
-  file { "${root_dir}/storage/log/webapp/":
+  file { '/var/log/graphite-web/':
     ensure => 'directory',
     owner  => $::graphite::user,
     group  => $::graphite::group,
     mode   => '0775',
   }
 
-  file { "${root_dir}/webapp/graphite/local_settings.py":
+  file { "${webapp_dir}/local_settings.py":
     ensure  => present,
     source  => 'puppet:///modules/graphite/local_settings.py',
     owner   => $::graphite::user,
