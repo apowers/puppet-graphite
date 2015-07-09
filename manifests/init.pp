@@ -132,4 +132,5 @@ class graphite(
   class{'graphite::config': } ~>
   class{'graphite::service': } ->
   Class['graphite']
+
 }

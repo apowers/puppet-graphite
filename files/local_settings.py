@@ -24,3 +24,15 @@ DATA_DIRS = [WHISPER_DIR, RRD_DIR] # Default: set from the above variables
 LOG_DIR = '/var/log/graphite-web/'
 ## ----
 
+# Local Database
+DATABASES = {
+    'default': {
+        'NAME': '/opt/graphite/storage/graphite.db',
+        'ENGINE': 'django.db.backends.sqlite3',
+        'USER': '',
+        'PASSWORD': '',
+        'HOST': '',
+        'PORT': ''
+    }
+}
+

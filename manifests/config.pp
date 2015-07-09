@@ -69,7 +69,7 @@ class graphite::config {
       ensure => link,
       target => '/lib/init/upstart-job',
     }
-  
+
     file { '/etc/init/carbon-aggregator.conf':
       ensure  => present,
       content => template('graphite/upstart/carbon-aggregator.conf'),
@@ -89,7 +89,7 @@ class graphite::config {
     }
 
   }
-  
+
   file { "${conf_dir}/carbon.conf":
     ensure  => present,
     content => $carbon_content,
@@ -140,17 +140,14 @@ class graphite::config {
     refreshonly => true,
     require     => File["${root_dir}/storage"],
     subscribe   => [
-#                        File['/etc/init/graphite-web.conf'],
-#                        File['/etc/init/carbon-cache.conf'],
+#                      File['/etc/init/graphite-web.conf'],
+#                      File['/etc/init/carbon-cache.conf'],
                       File["${root_dir}/storage"],
                       File["${webapp_dir}"],
                   ],
-    before      => [
-                      Service['graphite-web'],
-                      Service['carbon-cache'],
-                  ],
+    before      => Class['::graphite::service'],
   }
-  
+
   exec { 'init-db':
     command   => $initdb_cmd,
     cwd       => "${webapp_dir}",
